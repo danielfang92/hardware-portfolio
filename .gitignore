@@ -1,0 +1,32 @@
+# Build artifacts
+build/
+sim_build/
+*.vcd
+*.fst
+*.vvp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Vivado
+*.jou
+*.log
+*.str
+*.cache/
+*.runs/
+*.sim/
+*.hw/
+*.ip_user_files/
+.Xil/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
