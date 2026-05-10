@@ -1,14 +1,6 @@
 # Hardware Portfolio
 
-3rd-year Electrical Engineering student at Queen's University developing
-chip design skills and targeting verification internships.
-
-## Planned Projects (Summer 2026)
-
-- [ ] UART Transmitter/Receiver with cocotb verification
-- [ ] 32-bit ALU with UVM-style verification environment
-- [ ] Pipelined RV32I CPU with hazard detection and branch prediction
-- [ ] INT8 Systolic Array Matrix Multiplier (AXI-Lite peripheral)
+Electrical Engineering student at Queen's University. Interested in RTL design, design verification, and computer architecture.
 
 ## Tech Stack
 
@@ -18,6 +10,7 @@ chip design skills and targeting verification internships.
 - **Verification:** cocotb, SystemVerilog Assertions, SymbiYosys (formal)
 - **Languages:** Python, C, C++
 
-## Status
+## Documentation
 
-Currently in setup phase. First project (UART) starting June 2026.
+- [Setup notes](docs/setup.md) — toolchain and environment
+- [Learning log](docs/learning-log.md) — technical notes
