@@ -1,6 +1,6 @@
 # Learning Log
 
-Daily notes documenting my progression in chip design and computer architecture. Started May 2026, daily logging until end of summer.
+Daily notes documenting my progression in chip design and computer architecture. Started May 2026, logging until end of summer.
 
 ## Format
 
@@ -10,7 +10,16 @@ Each entry contains:
 - **What I did** (concrete actions)
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
-- **Tomorrow** (what's next)
+
+
+##2026-05-12
+**Time spent:** 2 hours
+
+**What I did:**
+- Watched Mutlu Lectures 1-2, Reviewing concepts from ELEC271 (Transistors, Gates, Combination Logic)
+- Completed HDLBits problems 1-8
+
+
 
 ---
 
@@ -37,8 +46,8 @@ Each entry contains:
 
 **Tomorrow:**
 - Create HDLBits account (hdlbits.01xz.net)
-- Find Onur Mutlu Fall 2025 Digital Design playlist on YouTube, bookmark
-- Watch Mutlu Lecture 1 (intro)
+- Find Onur Mutlu Digital Design playlist on YouTube, bookmark
+- Watch Mutlu Lectures (intro)
 - Solve HDLBits problems 1-5 (warmup), push solutions to repo
 
 ---
