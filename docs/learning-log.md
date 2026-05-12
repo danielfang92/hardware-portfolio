@@ -23,7 +23,7 @@ Each entry contains:
 
 ---
 
-##2026-05-09
+## 2026-05-09
 
 **Time spent:** ~1 hours (setting up)
 
