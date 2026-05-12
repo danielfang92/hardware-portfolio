@@ -12,7 +12,7 @@ Each entry contains:
 - **Stuck on / questions** (things to revisit)
 
 
-##2026-05-12
+## 2026-05-12
 **Time spent:** 2 hours
 
 **What I did:**
