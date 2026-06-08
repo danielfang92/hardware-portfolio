@@ -10,7 +10,10 @@ Each entry contains:
 - **What I did** (concrete actions)
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
-
+## 2026-05-13 to 2026-06-07
+**What I did:**
+- Completed Verilog Language section of HDLBits (Vectors, Modules:Hiearchy, Procedures, Other Verilog Features
+-Set up Vivado, WSL and Ubuntu Configured Git on New Laptop
 
 ## 2026-05-12
 **Time spent:** 2 hours
