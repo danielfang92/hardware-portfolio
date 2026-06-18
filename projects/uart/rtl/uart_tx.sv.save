@@ -1,0 +1,6 @@
+// uart_tx.sv
+// UART transmitter, 8N1 framing, parameterizable baud rate
+// Daniel Fang
+
+
+
