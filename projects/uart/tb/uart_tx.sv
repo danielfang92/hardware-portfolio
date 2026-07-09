@@ -58,62 +58,67 @@ module uart_tx #(
     // baud_tick pulses high exactly when the counter hits the end of a bit period
     assign baud_tick = (baud_counter == BAUD_DIVIDER - 1);
 
-// Main transmitter FSM. Walks through IDLE, START, DATA, STOP for each byte.
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            state        <= IDLE;
-            bit_index    <= 3'd0;
-            data_latched <= 8'd0;
-            tx_serial    <= 1'b1;
-            tx_busy      <= 1'b0;
-            tx_done      <= 1'b0;
-        end else begin
-            // tx_done is only high for a single cycle, so clear it by default
-            tx_done <= 1'b0;
+//Transmitter FSM
+always_ff @ (posedge clk or negedge rst_n) begin
+	if (!rst_n) begin
+		state <= IDLE;
+		bit_index <= 3'b0;
+		data_latched <= 8'b0;
+		tx_serial <= 1'b1;
+		tx_busy <= 1'b0;
+		tx_done <= 1'b0;	
+	end 
+	else begin tx_done <=1'b0;
 
-            case (state)
-                IDLE: begin
-                    tx_serial <= 1'b1;
-                    tx_busy   <= 1'b0;
-                    if (tx_start) begin
-                        data_latched <= tx_data;
-                        state        <= START;
-                        tx_busy      <= 1'b1;
-                    end
-                end
+	case (state)
+		IDLE: begin
+			tx_serial = 1'b1;
+			tx_busy = 1'b0;
+			if (tx_start) begin
+				data_latched = tx_data;
+				state <= START;
+				tx_busy <= 1'b1;
+			end
+		end
 
-                START: begin
-                    tx_serial <= 1'b0;
-                    if (baud_tick) begin
-                        state     <= DATA;
-                        bit_index <= 3'd0;
-                    end
-                end
+		START: begin
+			tx_serial = 1'b0;
+			if (baud_tick) begin
+			state <= DATA;
+			bit_index <= 3'b0;
+			end
+		end	
+		
+		DATA: begin
+			tx_serial = data_latched[bit_index];
+			if (baud_tick) begin
+				if (bit_index = 3'd7) begin
+					state <= STOP;
+				end else begin
+					bit_index <= bit_index + 3'd1;
+				end
+				
+		end
+	end
 
-                DATA: begin
-                    tx_serial <= data_latched[bit_index];
-                    if (baud_tick) begin
-                        if (bit_index == 3'd7) begin
-                            state <= STOP;
-                        end else begin
-                            bit_index <= bit_index + 3'd1;
-                        end
-                    end
-                end
-
-                STOP: begin
-                    tx_serial <= 1'b1;
-                    if (baud_tick) begin
+		 STOP: begin
+			tx_serial <= 1'b1;
+			if (baud_tick) begin
                         state   <= IDLE;
                         tx_done <= 1'b1;
-                    end
+                        end
                 end
 
-                default: begin
-                    state <= IDLE;
+		default: begin
+                	state <= IDLE;
                 end
             endcase
-        end
-    end
+        	end
+	end
+
+
 
 endmodule
+
+
+
