@@ -12,7 +12,7 @@ CLK_PERIOD_NS = 10
 
 async def start_clock(dut):
     """Kick off the system clock."""
-    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, unit="ns").start())
 
 
 async def reset_dut(dut):
@@ -24,14 +24,14 @@ async def reset_dut(dut):
     await RisingEdge(dut.clk)
     dut.rst_n.value = 1
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns") #output flip flops may need moment to propagate new values
+    await Timer(1, unit="ns") #output flip flops may need moment to propagate new values
 
 
 async def sample_bit(dut):
     """Wait one full bit period, then return the value on tx_serial."""
     for _ in range(CLKS_PER_BIT):
         await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     return int(dut.tx_serial.value)
 
 
