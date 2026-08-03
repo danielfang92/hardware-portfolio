@@ -15,14 +15,14 @@ async def reset_dut(dut):
 @cocotb.test()
 async def test_reset_clears_count(dut):
     """Verify that asserting reset clears count to 0."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
 
     # Apply reset
     dut.rst_n.value = 0
     dut.en.value = 0
     await RisingEdge(dut.clk)
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")  
+    await Timer(1, unit="ns")  
     assert dut.count.value == 0,  f"After reset, count should be 0, got {int(dut.count.value)}"
 
     dut._log.info("Reset test passed.")
@@ -31,14 +31,14 @@ async def test_reset_clears_count(dut):
 @cocotb.test()
 async def test_count_up(dut):
     """Verify counter counts 0->15 in sequence."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset_dut(dut)
 
     dut.en.value = 1
 
     for expected in range(1, 16):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")     
+        await Timer(1, unit="ns")     
         actual = int(dut.count.value)
         assert actual == expected, \
             f"Cycle {expected}: expected {expected}, got {actual}"
@@ -49,7 +49,7 @@ async def test_count_up(dut):
 @cocotb.test()
 async def test_wrap_around(dut):
     """Verify counter wraps from 15 back to 0."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset_dut(dut)
 
     dut.en.value = 1
@@ -57,12 +57,12 @@ async def test_wrap_around(dut):
     # Run 15 cycles to reach 15
     for _ in range(15):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")  
+        await Timer(1, unit="ns")  
     assert dut.count.value == 15,  f"Expected count=15 before wrap, got {int(dut.count.value)}"
 
     # One more cycle should wrap to 0
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")  
+    await Timer(1, unit="ns")  
     assert dut.count.value == 0, f"Expected wrap to 0, got {int(dut.count.value)}"
 
     dut._log.info("Wrap-around test passed!")
@@ -71,14 +71,14 @@ async def test_wrap_around(dut):
 @cocotb.test()
 async def test_enable_holds(dut):
     """Verify counter holds its value when enable is low."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await reset_dut(dut)
 
     # Count to 5
     dut.en.value = 1
     for _ in range(5):
         await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     held_value = int(dut.count.value)
 
     # Disable and check counter holds for 10 cycles
