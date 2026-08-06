@@ -3,14 +3,13 @@
 
 module regfile (
 	input logic  clk,
-	input logic rst_n,
 	input logic [4:0] rs1_addr,
 	input logic [4:0] rs2_addr,
-	output logic [31:0] rs1_data,
-	output logic [31:0] rs2_data,
 	input logic [31:0] rd_data,
 	input logic [4:0] rd_addr,
-	input logic we
+	input logic we,
+	output logic [31:0] rs1_data,
+	output logic [31:0] rs2_data
 );
 
 logic [31:0] registers [0:31];
