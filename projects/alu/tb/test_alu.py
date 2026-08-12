@@ -6,8 +6,8 @@ Four layers, cheap to expensive:
   3. Constrained-random - thousands of random (a, b, op) vectors: DUT vs model.
   4. Coverage           - prove we actually hit every op and every interesting corner.
 
-Timing note: the ALU is purely combinational. No clock, no reset. We set the
-inputs, wait a tiny Timer for the logic to settle, then read the outputs.
+run make with:make TOPLEVEL=alu MODULE=test_alu \
+     VERILOG_SOURCES="$(pwd)/../../riscv_cpu/rtl/riscv_pkg.sv $(pwd)/../rtl/alu.sv"
 """
 
 import cocotb

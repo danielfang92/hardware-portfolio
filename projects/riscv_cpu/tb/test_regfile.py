@@ -8,12 +8,7 @@ from cocotb.triggers import RisingEdge, Timer
 async def setup(dut):
 # # Init inputs to 0 to avoid undefined X on startup
 	cocotb.start_soon (Clock(dut.clk, 10, unit="ns").start())
-	dut.we.value = 0      
-	dut.rd_addr.value = 0
-	dut.rd_data.value = 0
-	dut.rs1_addr.value = 0
-	dut.rs2_addr.value = 0
-	await RisingEdge(dut.clk) 
+
 
 async def write_reg(dut, addr, data):
 # Write 'data' into register 'addr', then drop write-enable
