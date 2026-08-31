@@ -11,6 +11,51 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-08-06 to 2026-08-11
+
+**Control unit built and verified; ALU op encoding moved into a shared package. Six modules now verified — the datapath is complete except for top-level integration.**
+
+### What I built and did
+- `control.sv` — R-type control unit. Takes opcode, funct3, funct7; outputs `alu_op` and `reg_write`. Two directed tests: all ten R-type operations decode correctly, and a non-R-type opcode leaves `reg_write` low.
+- `riscv_pkg.sv` — package holding the `alu_op_t` enum, imported by both `alu.sv` and `control.sv`.
+- Confirmed Vivado 2025.2 launches offline ahead of travel.
+
+### Computer architecture lessons
+- **Opcode gives the category, funct3 and funct7 give the operation.** All ten R-type arithmetic instructions share opcode `0110011`. funct3 narrows it to one operation or a pair; funct7 bit 30 separates the two pairs funct3 can't — ADD/SUB and SRL/SRA.
+- **funct3 doesn't map onto my ALU encoding.** funct3 `001` is SLL but ALU code 1 is SUB. The RISC-V encoding was chosen in the spec for its own reasons; my ALU encoding was chosen by me. Control is a genuine translation layer, not a passthrough.
+- **Datapath versus control.** The datapath (regfile, ALU, memories) is capable of many things and decides nothing. Control decides which of them happens this cycle. Control never sees data — only the instruction's identity. That separation is why adding loads later means teaching control a new opcode rather than rewriting the decoder.
+- **A single-cycle CPU is one long combinational path** from the PC's output back to the register file's write-data input, with flip-flops at each end. Only two things are clocked: the PC advancing and the register write landing. The clock period must cover the whole path, which is why single-cycle designs are slow — every instruction pays the worst-case cost.
+- **No instruction register in a single-cycle design.** An IR exists to hold an instruction *between* cycles. Fetch, decode, and execute all happen within one period here, so there's nothing to hold across. The IR reappears as the IF/ID pipeline register when I pipeline.
+
+### SystemVerilog lessons
+- **Packages are for shared declarations, not hardware.** `package riscv_pkg; ... endpackage` holds types and parameters; nothing is instantiated. `import riscv_pkg::*;` before the module. The package must come first in `VERILOG_SOURCES` or Icarus reports "unknown type alu_op_t" — compile order matters for packages in a way it doesn't for modules.
+- **Typing a port as `alu_op_t` instead of `logic [3:0]`** is the payoff for the package — the type carries the meaning, and a mismatch becomes a compile error rather than a silent wrong encoding.
+- **`always_comb` needs every output assigned on every path.** Assign both outputs unconditionally at the top, then override inside the branch. Without the top-level default, the non-R-type path leaves `alu_op` unassigned and the synthesizer infers a latch — a real bug in combinational logic, not a style issue.
+- **Everything between blocks in a module is concurrent.** An `assign` isn't an instruction that executes; it's a permanent connection. Where it sits in the file relative to an `initial` or `always_ff` block has no effect. Only statements *inside* a procedural block are ordered — which is why the zero-fill loop must come before the instruction writes in imem.
+- **Packed versus unpacked dimensions.** `logic [31:0] mem [0:63]` — the dimension before the name is how wide one element is (packed, behaves like a number), the dimension after is how many elements there are (unpacked, behaves like a collection). `mem + 1` is meaningless; `mem[5] + 1` isn't.
+- **Storage goes in the module body, not the port list.** Ports are the interface — what crosses the boundary. The array is implementation. There's also no such thing as a wire carrying "32 separate registers," so unpacked arrays can't be ports in any synthesizable sense.
+
+### Verification lessons
+- **Mutation:** removed the `funct7 = 0100000` branch so SUB fell through to the default and decoded as ADD. The SUB check caught it. The ADD/SUB and SRL/SRA pairs are the whole point of the test — a control unit that ignored funct7 entirely would pass if I'd only tested one of each pair.
+- **The non-R-type test is what proves the opcode gate exists.** Without it, control would happily decode a load as an arithmetic op and nothing would notice — everything in imem is R-type right now, so it would work by luck until it didn't.
+- **A failure message should name the case.** `f"funct3={funct3:03b} funct7={funct7:07b}: expected {name}, got {name}"` tells me which of ten operations broke. A bare assert tells me nothing.
+
+### Tooling
+- Set up Ollama with Qwen 2.5 Coder 7B (fits 8GB VRAM on the RTX 5060) and Continue in VS Code, ahead of losing Claude access while travelling.
+- Ollama's installer needs `zstd` on Ubuntu — `sudo apt-get install zstd` first.
+- Small local models emit hallucinated tool calls when asked open-ended questions like "any mistakes in this?" Narrow, symptom-specific prompts with the file attached work; broad review requests produce confident generic output.
+
+### Open items
+- `cpu.sv` top-level integration — instantiate all six modules and wire them. Two things to remember: the regfile takes `clk` but no `rst_n`, and the first program test will read x1 and x2 before anything writes them, so they must be seeded through the write port from the testbench (there's no `addi` yet to load constants).
+- After that: I-type immediates, then loads/stores, branches, data memory. Then pipelining.
+
+### Working conditions
+Travelling in China Aug 12–29. Claude is unavailable in the region, so assistance is DeepSeek's web interface plus local Qwen via Ollama. Written `PROJECT_CONTEXT.md` at the repo root to paste in as context, since neither tool carries state between sessions. Plan is to favour bounded work — extending the decoder to I-type from the RISC-V spec — over open-ended debugging, since integration bugs are the thing a small model is least able to help with.
+
+### Reflection
+The control unit was the smallest module so far and the one where I most clearly understood *why* each line was there before writing it. That's a change from the register file, where I was still working out the reset question mid-build.
+
+The thing I'd do differently this week: too much of Aug 11 went to tooling — Ollama, Continue, VPN questions, model comparisons — the night before a flight, when integration was the thing that actually mattered. The setup was worth doing; doing it instead of `cpu.sv` was not.
 
 ## 2026-07-27 to 2026-08-05
 

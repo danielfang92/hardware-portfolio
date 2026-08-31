@@ -16,9 +16,9 @@ initial begin
         mem[i] = 32'd0;
     end
 
-    mem[0] = 32'h002081B3;
-    mem[1] = 32'h40208233;
-    mem[2] = 32'h0020F2B3;
+    mem[0] = 32'h002081B3; //add x3, x1, x2
+    mem[1] = 32'h40208233; // sub x4, x1, x2
+    mem[2] = 32'h0020F2B3; // and x5, x1, x2
 end
 
 endmodule
