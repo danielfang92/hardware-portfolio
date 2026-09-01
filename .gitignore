@@ -32,6 +32,13 @@ vivado_bringup/
 /MeshStat/
 /projects/AMD_L1_Cache_DV/
 
+# Résumés — kept locally for review only, never displayed on GitHub
+*resume*.pdf
+*Resume*.pdf
+
+# Windows "downloaded-from-internet" metadata streams
+*Zone.Identifier
+
 # OS
 .DS_Store
 Thumbs.db
