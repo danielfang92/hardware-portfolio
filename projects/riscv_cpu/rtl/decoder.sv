@@ -8,7 +8,8 @@ module decoder (
     output logic [2:0] funct3,
     output logic [4:0] rs1,
     output logic [4:0] rs2,
-    output logic [6:0] funct7
+    output logic [6:0] funct7,
+    output logic [31:0] imm_i
 ); 
 
 assign opcode = instruction [6:0];
@@ -17,6 +18,7 @@ assign funct3 = instruction [14:12];
 assign rs1 = instruction [19:15];
 assign rs2 = instruction [24:20];
 assign funct7 = instruction [31:25];
+assign imm_i = {{20{instruction[31]}}, instruction[31:20]};
 
 endmodule
 
