@@ -45,7 +45,7 @@ regfile u_regfile (
     .rs1_data (rs1_data),
     .rs2_data (rs2_data),
     .rd_addr  (rd),
-    .rd_data  (alu_result),
+    .rd_data  (rs1_data),
     .we       (reg_write)
 );
 control u_control (
