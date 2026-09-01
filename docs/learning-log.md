@@ -11,6 +11,52 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-08-12 to 2026-09-01
+
+**Single-cycle RV32I core complete — six modules integrated in cpu.sv, executing R-type programs, with four CPU-level tests and integration mutation testing.**
+
+### What I built and did
+- `cpu.sv` — top-level integration. Instantiates the program counter, imem, decoder, control unit, register file, and ALU, and wires them into a datapath. No new logic, all structural.
+- `test_cpu.py` — four CPU-level tests plus helpers for loading programs into imem and seeding registers.
+- Ran four integration mutations, each caught and restored.
+
+### The integration bug worth remembering
+`pc` was declared as an internal wire in `cpu.sv` but never connected to `u_pc`'s output port. Nothing drove it, so it sat at X forever. That X flowed into imem's address, the decoder split X into X fields, the register file read X, the ALU computed X, and X landed in x3. Every downstream symptom traced to one missing connection.
+
+**An undriven net produces full-width X, not a wrong value.** A logic bug gives you an incorrect number; X means no driver, or an X input. When an entire output is X, look for a floating net before debugging the logic. Icarus does not warn about a forgotten named port connection — the module simply doesn't drive it.
+
+### Verification lessons
+- **A CPU-level testbench needs its own scaffolding.** Registers can't be seeded through the regfile's write port, because `rd_addr`, `rd_data` and `we` are already driven by the decoder, ALU and control inside `cpu.sv` — driving them from the testbench too puts X on those nets. Writing the array directly (`dut.u_regfile.registers[addr].value`) bypasses the conflict. Scaffolding only; it goes away once `addi` exists and programs can initialise their own registers.
+- **The dependent-instruction test is the one that proves the writeback path connects.** A program where every instruction reads only seeded registers would pass even if writeback were subtly wrong. `sub x3, x1, x2` followed by `add x4, x3, x2` forces the second instruction to read what the first wrote.
+- **Testing x0 at integration level can't inspect `registers[0]` directly.** With no reset, that slot holds X whether or not the write-block worked — so an assert against 0 fails on correct hardware. Reading x0 *through the datapath* (`add x3, x0, x0`) exercises both guards and observes it the way real code would.
+- **An overrun test with an all-zero instruction cannot fail.** `0x00000000` has `rd` = bits [11:7] = 0, so even with `reg_write` stuck high the write targets x0, which is blocked anyway. Nothing observable changes. Replacing the overrun word with `0x00000FFF` gives `rd` = 31, so a broken opcode gate visibly clobbers a register. Confirmed by mutating `control.sv`'s check to `if (1'b1)` — the test failed with the nonzero word and would have passed with zeros.
+- **Canary values must be ones the bug cannot accidentally produce.** With `we` tied high, `0x00000FFF` decodes rs1=0 and rs2=0, so the ALU computes 0+0 and writes 0 to x31. Seeding x31 with `0xABCD` catches that; seeding it with 0 would not, because the corrupt value equals the expected value.
+- **Commutative operations cannot detect operand order.** Swapping `operand_a` and `operand_b` failed only the two tests containing SUB. The x0 and overrun tests use ADD exclusively and are structurally blind to that mutation.
+
+### Integration mutations run
+1. **`pc` unconnected** — every test failed with X in the result register. Found during bring-up rather than as a deliberate mutation.
+2. **ALU operands swapped** — tests 1 and 2 failed (both contain SUB); tests 3 and 4 passed, being ADD-only.
+3. **`we` tied high** — caught by the overrun test's x31 canary, but only after changing the overrun instruction from `0x00000000` to `0x00000FFF`.
+4. **`rd_data` connected to `rs1_data` instead of `alu_result`** — three of four failed. `test_x0_stays_zero` passed because `rs1_data` reads x0 as 0, which is also the expected result.
+
+### The pattern, now on its fourth and fifth instance
+A test value that coincides with the broken behaviour hides the bug. So far: `rd=3` and `rd=10` under the decoder slice mutation; opcode `0b0110011` in the all-ones test; `addr=0` under the imem index mutation; commutative operations under the operand swap; and a zero-valued canary under the stuck write-enable.
+
+Before writing an assert, ask what *wrong* behaviour would still produce this expected value. If the answer is "several," change the value.
+
+### Open items
+- Only ADD, SUB and AND are exercised end-to-end. The other seven ALU operations are verified at unit level but never run through the full datapath.
+- `test_r_type_program` relies on imem's hardcoded contents rather than calling `load_program`, making it order-dependent in principle.
+- Register seeding reaches into the module hierarchy. Remove once I-type exists.
+
+### Next
+Phase 2 — I-type immediates. Extend the decoder to extract immediates, add sign extension and an `alu_src` mux, teach control opcode `0010011`. Unlocks `addi`, which removes the seeding scaffolding.
+
+### Reflection
+Integration was the phase I'd expected to be hardest, and it was — but not for the reason I anticipated. The wiring itself was mechanical. What took the time was one forgotten port connection that produced a failure mode indistinguishable from a broken datapath. The lesson generalises: at integration level, the first question on a wrong result should be "what's undriven," not "what's my logic doing wrong."
+
+The mutation testing was more informative here than at unit level. Three of the four mutations were survived by at least one test, and in every case the reason was structural — the test couldn't distinguish correct from broken given the operations and values it used. That's a sharper version of something I'd already seen at module level.
+
 ## 2026-08-06 to 2026-08-11
 
 **Control unit built and verified; ALU op encoding moved into a shared package. Six modules now verified — the datapath is complete except for top-level integration.**
