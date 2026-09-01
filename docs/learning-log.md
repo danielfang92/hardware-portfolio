@@ -11,6 +11,22 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-09-01 — Program counter mutation test (closing an audit gap)
+
+**A portfolio audit flagged that every other module had a documented mutation but `program_counter` did not — the only `pc` fault in the log was the accidental unconnected-net bug found during CPU bring-up, which was luck, not a deliberate test. Closed that gap with two real mutations, both caught, RTL restored untouched. Run by Claude Code; I review here.**
+
+### What was run
+Baseline first (`test_program_counter.py`, 2/2 PASS), then one mutation at a time against `program_counter.sv`, reverting between each, then a final baseline to confirm restoration.
+
+- **Mutation 1 — increment `pc <= pc + 32'd4` → `+ 32'd1`.** Caught by `test_pc_increments`: `AssertionError: After 1 clock cycle, pc should be 4, got 1`. `test_pc_resets_to_zero` still passed — reset is a separate path, unaffected by the increment amount. Clean one-to-one: the fault maps to exactly the test that targets it.
+- **Mutation 2 — reset value `pc <= '0` → `pc <= 32'd4`.** Caught by *both* tests: `test_pc_resets_to_zero` directly (`should be 0, got 4`), and `test_pc_increments` as collateral (`should be 4, got 8`) because a wrong reset seed offsets every subsequent value.
+- **Restore** — reverted to `+ 32'd4` and `'0`; baseline back to 2/2 PASS; `git diff` on the RTL clean.
+
+### What I learned
+- **Mutation testing validates the test, not the design.** A green suite only means something if a known-wrong RTL turns it red. Both mutations flipping the suite to FAIL is the actual evidence the two asserts have teeth — the same discipline the CPU-level integration mutations gave me, now applied to the one module that was missing it.
+- **A mutation caught by two tests is redundancy, not extra coverage.** The reset mutation tripping both asserts tells me the increment test isn't independent of the reset value — it assumes reset lands at 0. That's fine here (reset is proven by its own test first), but worth noticing: collateral failures can mask *which* thing actually broke.
+- The deprecated `units=` warning fired again on line 8 (audit finding #8) — still passing under cocotb 2.0.1, still needs migrating to `unit=`. Not fixed in this pass; logged.
+
 ## 2026-09-01 — First Vivado synthesis run (Basys 3 / Artix-7)
 
 **First time pushing RTL through real synthesis + place + route in Vivado 2025.2, batch mode, targeting `xc7a35tcpg236-1`. Goal was post-implementation timing and area numbers, not a board program. Run done autonomously by Claude Code against untouched RTL; I review the numbers here.**
