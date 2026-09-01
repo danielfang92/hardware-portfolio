@@ -28,6 +28,10 @@ vivado_cpu/
 vivado_bringup/
 *.bit
 
+# Standalone embedded repos (own git history; not part of this repo, not pushed here)
+/MeshStat/
+/projects/AMD_L1_Cache_DV/
+
 # OS
 .DS_Store
 Thumbs.db
