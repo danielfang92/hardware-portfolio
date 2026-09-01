@@ -11,6 +11,36 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-09-01 — First Vivado synthesis run (Basys 3 / Artix-7)
+
+**First time pushing RTL through real synthesis + place + route in Vivado 2025.2, batch mode, targeting `xc7a35tcpg236-1`. Goal was post-implementation timing and area numbers, not a board program. Run done autonomously by Claude Code against untouched RTL; I review the numbers here.**
+
+### What was run
+- `build_regfile.tcl` — register file, out-of-context.
+- `build_cpu.tcl` — full single-cycle core. Failed in implementation; see below.
+- `build_bringup.tcl` — a throwaway 27-bit blink counter, taken end-to-end to a real bitstream to prove the whole flow (synth → opt → place → route → `write_bitstream`) works before the board arrives.
+
+### The numbers that are real
+- **`bringup_blink`** — closed timing at 100 MHz with **WNS +7.204 ns** (setup met), WHS +0.324 ns (hold met). Fmax ≈ 1000 / (10 − 7.204) ≈ **358 MHz**. **1 LUT, 27 flip-flops, 2 IOB.** Bitstream written (188,847 bytes). This is the only design in the run with a real register-to-register path, so it's the only meaningful Fmax.
+- **`regfile` (out-of-context)** — **109 Slice LUTs (0.52% of the device)**: 65 as logic + 44 as distributed RAM. **0 flip-flops.** Vivado inferred the 32×32 array as LUTRAM, not 1024 discrete FFs — one write port, two async read ports maps naturally onto distributed RAM. Area is the useful number here; timing is not (next point).
+
+### What I learned about synthesis vs. simulation
+- **A register file has no register-to-register paths, so a clock period doesn't constrain anything inside it.** Every path is input→flop (write setup) or flop→output (read). With no I/O delay constraints, the timing report came back `WNS = NA`. There is no honest "closed timing at X MHz" claim for a regfile in isolation — that claim only means something once the block sits between other registers in the CPU. Simulation never made this distinction visible; synthesis does.
+- **113 top-level ports won't fit a 106-pin package.** `regfile` exposes 113 signals (two 32-bit read buses + a 32-bit write bus + addresses + controls). The cpg236 package has 106 bonded user I/O. Placement failed on I/O overutilization until I switched to out-of-context synthesis, which is the correct way to characterize an internal block anyway — it never touches the chip boundary, so no I/O buffers and no pin placement. Good reminder that "number of ports" is a physical constraint, not just an interface choice.
+- **A synthesis top with no observable outputs optimizes to nothing.** `cpu.sv` has only `clk` and `rst_n` — no outputs. Every phase of `opt_design` reported "removed 0 cells" only because the whole datapath was already unobservable and swept; `place_design` then errored `[Place 30-494] The design is empty`. The register writes are real in simulation because the testbench reaches into the hierarchy to read them, but to hardware, a value that never leaves the chip is dead logic. To get real CPU area/timing I need to expose something — a debug output port (e.g. the current instruction or a register value to the LEDs/an output bus), or `DONT_TOUCH` on the regfile. **Not an RTL bug; a design-completeness gap.** Full error saved to `vivado_cpu/error.log`.
+- **`create_clock` needs an open, synthesized design.** The first script defined the clock with `[get_ports clk]` *before* `synth_design` — `get_ports` has no netlist to query yet, so it threw `[Common 17-53] No open design`, and Vivado's line-echo misattributed it to the preceding command. Fixed by moving `create_clock` to after `synth_design`. Cleaner still is to put the constraint in an XDC, which is how the bringup build does it.
+- The Digilent master constraint file is `Basys-3-Master.xdc` (dashes around the 3), clock on pin **W5**, LD0 on **U16**. Everything ships commented out; you uncomment only the pins you use and match port names exactly.
+
+### Open items
+- **CPU can't be characterized until it has an observable output.** Decide between a debug output port and `DONT_TOUCH`. A debug port is the more honest choice — it's closer to how the design will actually be brought up on the board.
+- No timing/area numbers for the CPU yet — the number that would actually matter (a real Fmax with logic between registers) is still pending that fix.
+- `regfile` timing is unconstrained by construction; revisit with input/output delays only if I ever want I/O-path numbers, which I probably don't.
+
+### Resume-ready (real numbers only)
+- "Took RTL through synthesis, place-and-route, and bitstream generation in Vivado 2025.2 targeting a Xilinx Artix-7 (Basys 3, `xc7a35tcpg236-1`); closed timing at 100 MHz with 7.2 ns of setup slack (≈358 MHz Fmax)."
+- "Characterized an RV32I register file out-of-context on Artix-7: 109 LUTs (0.5% of device), with the 32×32 array inferred as distributed RAM."
+- Deliberately *not* claiming a CPU frequency — the top-level has no observable output yet, so its logic optimizes away. Recorded as an open item rather than a fabricated number.
+
 ## 2026-08-12 to 2026-09-01
 
 **Single-cycle RV32I core complete — six modules integrated in cpu.sv, executing R-type programs, with four CPU-level tests and integration mutation testing.**
