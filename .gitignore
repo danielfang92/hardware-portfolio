@@ -22,6 +22,12 @@ __pycache__/
 *.ip_user_files/
 .Xil/
 
+# Vivado batch-build output dirs (large generated project files)
+vivado_regfile/
+vivado_cpu/
+vivado_bringup/
+*.bit
+
 # OS
 .DS_Store
 Thumbs.db
