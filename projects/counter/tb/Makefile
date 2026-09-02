@@ -1,4 +1,4 @@
-# Cocotb + Verilator setup for the counter project
+# Cocotb + Icarus Verilog setup for the counter project
 # Run with: make
 
 SIM ?= icarus

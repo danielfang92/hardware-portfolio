@@ -4,11 +4,13 @@ Electrical Engineering student at Queen's University. Interested in RTL design, 
 
 ## Tech Stack
 
-- **HDLs:** SystemVerilog
-- **Simulation:** Verilator, Icarus Verilog, cocotb
-- **Synthesis:** AMD Vivado (Artix-7 / Basys 3)
-- **Verification:** cocotb, SystemVerilog Assertions, SymbiYosys (formal)
-- **Languages:** Python, C, C++
+- **HDL:** SystemVerilog
+- **Simulation:** Icarus Verilog + cocotb (Python)
+- **Synthesis:** AMD Vivado 2025.2 (Artix-7 / Basys 3)
+- **Verification:** cocotb testbenches, Python reference models, constrained-random stimulus, functional coverage, mutation testing
+- **Languages:** SystemVerilog, Python, Tcl
+
+_Planned: Verilator, SystemVerilog Assertions, SymbiYosys / riscv-formal (formal verification)._
 
 ## Documentation
 
