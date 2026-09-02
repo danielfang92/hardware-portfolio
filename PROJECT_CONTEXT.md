@@ -63,17 +63,17 @@ Six modules built, each verified with cocotb and mutation-tested:
 `riscv_pkg.sv` holds the alu_op_t enum, shared by alu.sv and control.sv.
 It MUST come first in VERILOG_SOURCES or Icarus reports "unknown type alu_op_t".
 
-## Next step
+## cpu.sv integration (done)
 
-cpu.sv — top-level integration. Instantiate all six modules and wire them:
+cpu.sv integrates all six modules into a single-cycle datapath, wired:
 
 PC → imem → decoder → {control, regfile addresses} → regfile reads → ALU →
 writeback to regfile (rd_addr, alu_result, reg_write).
 
-Two things that will bite:
+Two things that bit during bring-up:
 - regfile takes clk but NO rst_n. Only the PC has a reset.
-- The first program test will read x1 and x2 before anything writes them, so
-  they read X. Seed them through the regfile's write port from the testbench
+- The first program test reads x1 and x2 before anything writes them, so
+  they read X. Seeded them through the regfile's write port from the testbench
   before running the program — there is no addi yet to load constants.
 
 ## Design decisions and why
