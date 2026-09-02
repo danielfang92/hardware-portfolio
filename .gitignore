@@ -22,8 +22,13 @@ __pycache__/
 *.ip_user_files/
 .Xil/
 
-# Vivado batch-build output dirs (large generated project files)
-vivado_regfile/
+# Vivado batch-build output dirs (large generated project files).
+# Keep the .rpt reports (they're the area/timing evidence), drop the generated
+# project. Note: this must be `vivado_regfile/*` + a negation, NOT
+# `vivado_regfile/` — git cannot re-include a file under a directory excluded
+# wholesale, so `!vivado_regfile/*.rpt` only works with `/*` above it.
+vivado_regfile/*
+!vivado_regfile/*.rpt
 vivado_cpu/
 vivado_bringup/
 *.bit
@@ -38,6 +43,10 @@ vivado_bringup/
 
 # Windows "downloaded-from-internet" metadata streams
 *Zone.Identifier
+
+# Internal working docs — kept locally for my own use, not published to GitHub
+CLAUDE.md
+docs/claude-code-sessions.md
 
 # OS
 .DS_Store
