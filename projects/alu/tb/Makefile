@@ -4,7 +4,10 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-VERILOG_SOURCES = $(PWD)/../rtl/alu.sv
+# alu.sv does `import riscv_pkg::*;`, and that package lives in the neighbouring
+# riscv_cpu project. Icarus compiles sources in order, so the package must come
+# BEFORE alu.sv or elaboration fails with "unknown type alu_op_t".
+VERILOG_SOURCES = $(PWD)/../../riscv_cpu/rtl/riscv_pkg.sv $(PWD)/../rtl/alu.sv
 
 # Top-level module name (must match the module in alu.sv)
 TOPLEVEL = alu

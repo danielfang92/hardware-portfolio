@@ -1,5 +1,5 @@
 """"cocotb testbench for single-cyckle RISC-V CPU"""
-#make MODULE=test_cpu TOPLEVEL=cpu VERILOG_SOURCES="$(pwd)/../rtl/riscv_pkg.sv $(pwd)/../rtl/program_counter.sv $(pwd)/../rtl/imem.sv $(pwd)/../rtl/decoder.sv $(pwd)/../rtl/control.sv $(pwd)/../rtl/regfile.sv $(pwd)/../../alu/rtl/alu.sv $(pwd)/../rtl/cpu.sv"
+# Run with: make cpu   (from projects/riscv_cpu/tb/)
 #remmber test_r_type_program doesn't call load_program, relies on imem from RTL
 import cocotb
 from cocotb.clock import Clock

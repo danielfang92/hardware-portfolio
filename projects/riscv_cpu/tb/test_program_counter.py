@@ -1,5 +1,5 @@
 """testbenches for RV32I program counter"""
-# TO RUN IN MAKEFILE: make MODULE=test_program_counter TOPLEVEL=program_counter VERILOG_SOURCES=../rtl/program_counter.sv
+# Run with: make pc   (from projects/riscv_cpu/tb/)
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer

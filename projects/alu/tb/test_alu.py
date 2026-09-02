@@ -6,8 +6,7 @@ Four layers, cheap to expensive:
   3. Constrained-random - thousands of random (a, b, op) vectors: DUT vs model.
   4. Coverage           - prove we actually hit every op and every interesting corner.
 
-run make with:make TOPLEVEL=alu MODULE=test_alu \
-     VERILOG_SOURCES="$(pwd)/../../riscv_cpu/rtl/riscv_pkg.sv $(pwd)/../rtl/alu.sv"
+Run with:  make   (from projects/alu/tb/)
 """
 
 import cocotb
