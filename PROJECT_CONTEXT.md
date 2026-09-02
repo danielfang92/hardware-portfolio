@@ -2,6 +2,10 @@
 
 Last updated: 2026-08-11
 
+> Update: `cpu.sv` is now integrated — single-cycle, R-type, four CPU-level
+> tests plus integration mutation testing. The sections below are the
+> 2026-08-11 snapshot; the next real step is I-type immediates.
+
 ## Who and why
 
 Daniel Fang, 3rd-year Electrical Engineering, Queen's University. Building a
