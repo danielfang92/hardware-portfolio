@@ -1,5 +1,5 @@
 """cocotb testbenches for RV32I instruction memory"""
-# TO RUN IN MAKEFILE: make MODULE=test_imem TOPLEVEL=imem VERILOG_SOURCES=../rtl/imem.sv
+# Run with: make imem   (from projects/riscv_cpu/tb/)
 import cocotb
 from cocotb.triggers import Timer
 

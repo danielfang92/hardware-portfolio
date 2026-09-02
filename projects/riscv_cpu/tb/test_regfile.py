@@ -1,4 +1,5 @@
 """cocotb testbenches for RV32I register file"""
+# Run with: make regfile   (from projects/riscv_cpu/tb/)
 
 import cocotb
 from cocotb.clock import Clock

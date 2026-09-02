@@ -1,5 +1,5 @@
 """cocotb testbench for RV32I control unit (R-type only)"""
-#run with make MODULE=test_control TOPLEVEL=control VERILOG_SOURCES="$(pwd)/../rtl/riscv_pkg.sv $(pwd)/../rtl/control.sv"
+# Run with: make control   (from projects/riscv_cpu/tb/)
 import cocotb
 from cocotb.triggers import Timer
 

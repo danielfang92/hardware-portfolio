@@ -10,8 +10,6 @@ Electrical Engineering student at Queen's University. Interested in RTL design, 
 - **Verification:** cocotb testbenches, Python reference models, constrained-random stimulus, functional coverage, mutation testing
 - **Languages:** SystemVerilog, Python, Tcl
 
-_Planned: Verilator, SystemVerilog Assertions, SymbiYosys / riscv-formal (formal verification)._
-
 ## Documentation
 
 - [Setup notes](docs/setup.md) — toolchain and environment

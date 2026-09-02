@@ -1,5 +1,5 @@
 """cocotb testbenches for RV32I decoder (R-Type fields)"""
-# TO RUN IN MAKEFILE: make MODULE=test_decoder TOPLEVEL=decoder VERILOG_SOURCES=../rtl/decoder.sv
+# Run with: make decoder   (from projects/riscv_cpu/tb/)
 
 import cocotb
 from cocotb.clock import Clock
