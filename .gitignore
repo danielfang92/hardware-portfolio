@@ -47,6 +47,7 @@ vivado_bringup/
 # Internal working docs — kept locally for my own use, not published to GitHub
 CLAUDE.md
 docs/claude-code-sessions.md
+PROJECT_CONTEXT.md
 
 # OS
 .DS_Store
