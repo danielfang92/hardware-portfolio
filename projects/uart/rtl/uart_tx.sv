@@ -1,6 +1,7 @@
 // uart_tx.sv
 // UART transmitter: 8N1 framing, parameterizable baud rate
 // Daniel Fang
+`timescale 1ns/1ps
 
 module uart_tx #(
     parameter int CLK_FREQ_HZ = 100_000_000,

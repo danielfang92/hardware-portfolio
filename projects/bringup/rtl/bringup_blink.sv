@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module bringup_blink (
     input  logic clk,     // 100 MHz onboard clock
     output logic led
