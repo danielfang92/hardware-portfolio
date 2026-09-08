@@ -1,6 +1,6 @@
 //RISC-V Control Unit, R-type only
 //Daniel Fang
-
+`timescale 1ns/1ps
 
 import riscv_pkg::*;
 

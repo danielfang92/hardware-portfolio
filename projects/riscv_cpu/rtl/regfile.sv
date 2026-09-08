@@ -1,5 +1,6 @@
 // 32x32 register file for RV32I
 // Daniel Fang
+`timescale 1ns/1ps
 
 module regfile (
 	input logic  clk,

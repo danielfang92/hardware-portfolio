@@ -1,5 +1,6 @@
 // Shared type definitions for the RV32I core
 // Daniel Fang
+`timescale 1ns/1ps
 
 package riscv_pkg;
 

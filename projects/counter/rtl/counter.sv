@@ -1,6 +1,7 @@
 // WIDTH-bit binary counter with async reset and enable
 // Counts 0 -> (2**WIDTH - 1) then wraps to 0 on overflow
 // Daniel Fang
+`timescale 1ns/1ps
 
 module counter #(parameter int WIDTH = 4) ( input logic clk, input logic rst_n, input logic en, output logic [WIDTH-1:0] count);
 

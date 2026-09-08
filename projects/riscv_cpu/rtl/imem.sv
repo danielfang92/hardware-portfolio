@@ -1,5 +1,6 @@
 //RV32I instruction memory 
 //Daniel Fang
+`timescale 1ns/1ps
 
 module imem (
     input logic [31:0] addr,

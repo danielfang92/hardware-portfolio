@@ -1,5 +1,6 @@
 // RV32I program counter
 // Daniel Fang
+`timescale 1ns/1ps
 
 module program_counter(
     input logic clk,

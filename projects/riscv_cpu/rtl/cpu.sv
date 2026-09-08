@@ -1,6 +1,7 @@
 // RV32I single-cycle CPU — R-type only
 // Daniel Fang
 //dataflow: pc>instruction memory> decoder >split into control and registerfile
+`timescale 1ns/1ps
 import riscv_pkg::*;
 
 module cpu (
