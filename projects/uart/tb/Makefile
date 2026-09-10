@@ -4,7 +4,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-VERILOG_SOURCES = $(PWD)/../rtl/uart_tx.sv
+VERILOG_SOURCES = $(CURDIR)/../rtl/uart_tx.sv
 
 TOPLEVEL = uart_tx
 # Override parameters for fast simulation: 8 clocks per bit instead of 868

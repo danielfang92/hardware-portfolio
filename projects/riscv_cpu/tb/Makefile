@@ -20,9 +20,9 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-RTL := $(PWD)/../rtl
+RTL := $(CURDIR)/../rtl
 PKG := $(RTL)/riscv_pkg.sv
-ALU := $(PWD)/../../alu/rtl/alu.sv
+ALU := $(CURDIR)/../../alu/rtl/alu.sv
 
 .PHONY: test regfile imem decoder pc control cpu
 

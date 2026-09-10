@@ -4,7 +4,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-VERILOG_SOURCES = $(PWD)/../rtl/counter.sv
+VERILOG_SOURCES = $(CURDIR)/../rtl/counter.sv
 
 # Top-level module name (must match `module counter` in counter.sv)
 TOPLEVEL = counter

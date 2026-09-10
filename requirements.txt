@@ -1,0 +1,10 @@
+# Pinned: cocotb 2.0 changed APIs from the 1.x line, so an unpinned install can
+# hand a reviewer a version these testbenches do not run on.
+#
+# cocotb 2.0.x hard-fails at build time on Python 3.14 (its setup.py caps at
+# 3.13) despite the permissive Requires-Python metadata. Use Python 3.9-3.13.
+cocotb==2.0.1
+
+# Not required to run, but cocotb uses pytest's assertion rewriting to produce
+# readable failure messages instead of a bare AssertionError.
+pytest==9.0.3
