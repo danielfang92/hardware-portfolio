@@ -11,6 +11,24 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-09-10 — Top-level regression, and a $(PWD) bug it exposed
+
+**Built a top-level Makefile so the whole suite runs from a fresh clone, and testing it as a stranger surfaced a path bug that had been latent for months. Done in a Claude Code session; I ran the reproduction and the analysis below is mine.**
+
+### What I did
+- Added a root `Makefile` delegating to each project with `$(MAKE) -C`, a `requirements.txt` pinning cocotb 2.0.1 and pytest, and a README bootstrap. Before this, `make` at the repo root did nothing and there was no documented way to install cocotb.
+- Verified by cloning from GitHub into `/tmp`, building a fresh 3.13 venv, and running the README steps only. 26/26 pass cold.
+
+### What I learned
+- **`$(PWD)` is the shell's launch directory; `$(CURDIR)` is make's own.** All four project Makefiles used `$(PWD)/../rtl`. That resolved correctly for months only because I always ran `make` from inside the testbench directory. From the repo root it pointed outside the repository entirely.
+- **Three of the four passed anyway, and the reason is not that they were correct.** cocotb's flow re-invokes make from inside the testbench directory, so `VERILOG_SOURCES` got re-expanded there with a corrected path. The CPU project hands its sources to a sub-make as a command-line override, so the wrong path was frozen in before that could happen. It was the only one that failed.
+- That is the same shape as the decoder mutation: things passing for a reason unrelated to correctness. A green run is evidence about the environment as much as about the code.
+- **cocotb 2.0.x will not build on Python 3.14**, which is now the system default. Its `setup.py` caps at 3.13 despite permissive `Requires-Python` metadata, so the README names `python3.13` explicitly.
+
+### Stuck on / questions
+- The `$(PWD)` habit came from copying my first Makefile four times. Worth a pass over the repo for anything else duplicated that way.
+- Nothing pins Icarus. The README documents 12.0 in prose; a real flow would pin the simulator too.
+
 ## 2026-09-01 — Program counter mutation test (closing an audit gap)
 
 **A portfolio audit flagged that every other module had a documented mutation but `program_counter` did not — the only `pc` fault in the log was the accidental unconnected-net bug found during CPU bring-up, which was luck, not a deliberate test. Closed that gap with two real mutations, both caught, RTL restored untouched. Run by Claude Code; I review here.**

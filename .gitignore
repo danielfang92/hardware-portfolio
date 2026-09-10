@@ -36,7 +36,7 @@ vivado_bringup/
 
 # Standalone embedded repos (own git history; not part of this repo, not pushed here)
 /MeshStat/
-/projects/AMD_L1_Cache_DV/
+/projects/l1_dcache_dv/
 
 # Résumés — kept locally for review only, never displayed on GitHub
 *resume*.pdf
@@ -58,3 +58,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Teaching scaffold kept locally, not portfolio work
+projects/alu/tb/test_alu_pseudocode.py

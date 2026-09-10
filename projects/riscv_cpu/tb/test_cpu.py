@@ -1,6 +1,6 @@
-""""cocotb testbench for single-cyckle RISC-V CPU"""
+"""cocotb testbench for the single-cycle RISC-V CPU"""
 # Run with: make cpu   (from projects/riscv_cpu/tb/)
-#remmber test_r_type_program doesn't call load_program, relies on imem from RTL
+# remember: test_r_type_program doesn't call load_program, relies on imem from RTL
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
