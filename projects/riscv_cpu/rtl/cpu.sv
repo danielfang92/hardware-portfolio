@@ -7,6 +7,11 @@ import riscv_pkg::*;
 module cpu (
     input  logic        clk,
     input  logic        rst_n,
+    // Program load port, passed straight through to imem. Load while reset is
+    // held: register writes are gated off then, so nothing executes mid-load.
+    input  logic        imem_we,
+    input  logic [5:0]  imem_waddr,
+    input  logic [31:0] imem_wdata,
     // Write-back (commit) port: what the current instruction writes, and where
     // it came from. Without outputs, synthesis sees nothing observable and
     // removes the whole design, so these make the datapath real hardware.
@@ -32,6 +37,10 @@ program_counter u_pc (
 );
 
 imem u_imem (
+    .clk (clk),
+    .we (imem_we),
+    .waddr (imem_waddr),
+    .wdata (imem_wdata),
     .addr (pc),
     .instruction (instruction)
 );
