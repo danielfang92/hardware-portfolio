@@ -1,4 +1,4 @@
-"""cocotb testbench for RV32I control unit (R-type only)"""
+"""cocotb testbench for RV32I control unit (R-type + I-type OP-IMM)"""
 # Run with: make control   (from projects/riscv_cpu/tb/)
 import cocotb
 from cocotb.triggers import Timer

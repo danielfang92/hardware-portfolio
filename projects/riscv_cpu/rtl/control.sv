@@ -1,4 +1,4 @@
-//RISC-V Control Unit, R-type only
+//RISC-V Control Unit, R-type + I-type (OP-IMM)
 //Daniel Fang
 `timescale 1ns/1ps
 
