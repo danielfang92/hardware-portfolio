@@ -22,7 +22,7 @@ logic [4:0] rd, rs1, rs2;
 logic [2:0] funct3;
 logic [31:0] rs1_data, rs2_data, alu_result, imm_i, operand_b;
 alu_op_t     alu_op;
-logic        reg_write, zero, alu_src;
+logic        reg_write, reg_we, zero, alu_src;
 
 
 program_counter u_pc (
@@ -47,6 +47,13 @@ decoder u_decoder (
     .imm_i (imm_i)
 );
 
+// No instruction retires while reset is held. The PC sits at 0 during reset,
+// so instruction 0 is decoded on every edge; without this gate it would write
+// the regfile each cycle (addi x1, x1, 1 would count up). Gated here rather
+// than in control (pure decode, no notion of reset) or in regfile (a generic
+// storage block with no reset input).
+assign reg_we = reg_write & rst_n;
+
 regfile u_regfile (
     .clk      (clk),
     .rs1_addr (rs1),
@@ -55,7 +62,7 @@ regfile u_regfile (
     .rs2_data (rs2_data),
     .rd_addr  (rd),
     .rd_data  (alu_result),
-    .we       (reg_write)
+    .we       (reg_we)
 );
 control u_control (
     .opcode (opcode),
@@ -80,7 +87,7 @@ alu u_alu (
 // Commit port. A write to x0 is discarded by the regfile, so report its data
 // as 0 (the riscv-formal RVFI rule): the port shows what actually landed,
 // not what the ALU happened to compute.
-assign wb_en_o   = reg_write;
+assign wb_en_o   = reg_we;     // report only writes that actually happen
 assign wb_rd_o   = rd;
 assign wb_data_o = (rd == 5'd0) ? 32'd0 : alu_result;
 assign pc_o      = pc;
