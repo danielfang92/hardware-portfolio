@@ -1,5 +1,7 @@
 # Hardware Portfolio
 
+[![regression](https://github.com/danielfang92/hardware-portfolio/actions/workflows/regression.yml/badge.svg)](https://github.com/danielfang92/hardware-portfolio/actions/workflows/regression.yml)
+
 Electrical Engineering student at Queen's University, working on RTL design,
 design verification, and hardware validation.
 
@@ -67,8 +69,15 @@ make
 ```
 
 `make` runs the full regression across every project and stops on the first
-failure. It is currently **34/34 passing** from a clean clone. Individual
-projects:
+failure. It is currently **34/34 passing** from a clean clone.
+
+The same 34-test regression runs in GitHub Actions on every push
+([`.github/workflows/regression.yml`](.github/workflows/regression.yml)), on a
+pinned Ubuntu 24.04 runner with Python 3.12. CI is simulation only: Vivado is
+licensed and installed on Windows, so synthesis is still run locally with
+`make synth`.
+
+Individual projects:
 
 ```bash
 make counter    # 4-bit parameterized counter
