@@ -22,6 +22,8 @@ env/
 *.hw/
 *.ip_user_files/
 .Xil/
+clockInfo.txt
+dfx_runtime.txt
 
 # Vivado batch-build output dirs (large generated project files).
 # Keep the .rpt reports (they're the area/timing evidence), drop the generated

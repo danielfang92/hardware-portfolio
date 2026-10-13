@@ -11,6 +11,32 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-10-13 — CPU synthesized to nothing because the tests never looked at the ports
+
+Follow-up to the open item from the 2026-09-01 Vivado run. Done in a Claude Code session; I reviewed the changes and the reasoning below.
+
+### What I did
+- Added a write-back port to `cpu.sv`: `wb_en_o`, `wb_rd_o`, `wb_data_o`, `pc_o`. All four are just existing internal signals (`reg_write`, `rd`, `alu_result`, `pc`) wired out with `assign`. A write to x0 reports data 0, which is the RVFI convention, since the regfile throws that write away anyway.
+- Rewrote the checks in `test_cpu.py`. A monitor samples the port on every falling edge and builds a list of `(pc, rd, data)` writes. Each test compares the whole list against the expected one. No test reads `dut.u_regfile.registers` any more. Programs are still loaded by writing `u_imem.mem` directly, and some tests still seed registers that way.
+- `load_program` now zero-fills all 64 imem slots.
+- Added `-mode out_of_context` to `build_cpu.tcl`.
+- Mutations: operand mux forced to rs2, x0 rule removed, `pc_o` tied to 0. All three failed the new checks. RTL restored, 32/32 passing.
+
+### What I learned
+- The CPU had two inputs and no outputs. Synthesis only has to preserve behaviour at the ports, and from the ports my CPU did nothing, so deleting all of it was a correct optimization, not a tool bug. Vivado walked backwards from the (nonexistent) outputs, found nothing reachable, and placement failed with `[Place 30-494] The design is empty`.
+- My tests never noticed because every input went in through the hierarchy (`u_imem.mem[i]`) and every check came out through the hierarchy (`u_regfile.registers[N]`). Simulation answered "do the internals compute the right values" (yes). Synthesis answered "does this module do anything you can see" (no). Peeking inside is normal (UVM calls it backdoor access), the mistake was having zero front-door checks.
+- The old `load_program` only overwrote the slots it was given. A 2-instruction program fell through into the `and x5, x1, x2` left in slot 2 by imem's `initial` block and ran it. The old register spot checks couldn't see an extra write. The full trace compare flagged it straight away. That was a testbench bug, not an RTL one.
+- With the port added, the CPU closes 100 MHz out of context with WNS +2.07 ns. That's against an ideal clock: OOC, Vivado doesn't know where the BUFG sits, so there's no insertion delay or skew in the number. In a real top level the margin would shrink.
+- 30 flip-flops, not 32, for the PC. It resets to 0 and only adds 4, so bits [1:0] are always 0 and Vivado replaced them with constants.
+- 217 LUTs total, which is too small to be my CPU. imem is a fixed ROM holding add/sub/and, so Vivado knows only those three instructions ever execute and strips the shifter, SLT, the I-type immediate path and most of the decoder. That number is "this CPU running this one program". Not putting it on the resume.
+- State carries between tests. While mutating the operand mux, x3 came out as 43983, which is 0xABCD + 2. The 0xABCD was seeded into x31 by the previous test. All tests in a cocotb file share one simulation and the regfile has no reset, so the suite only passes because every test writes a register before it reads it.
+
+### Stuck on / questions
+- The regfile writes during reset. `we` isn't gated by `rst_n`, and while reset is held the PC sits at 0, so instruction 0 executes on every edge. Harmless for `add x3, x1, x2`, but `addi x1, x1, 1` would count up once per reset cycle. Need to decide where the gating belongs and write a failing test first.
+- For an honest area number, imem needs a write port so its contents aren't known at synthesis time. A `$readmemh` file wouldn't help because Vivado reads it during synthesis and constant-folds it the same way.
+- Test isolation: zero the regfile in `start_and_reset`, but only after the reset bug is fixed so it can't hide it.
+- CPU reports in `vivado_cpu/` stay gitignored until the imem fix, so the 217 figure doesn't end up looking like a claim.
+
 ## 2026-09-10 — Top-level regression, and a $(PWD) bug it exposed
 
 **Built a top-level Makefile so the whole suite runs from a fresh clone, and testing it as a stranger surfaced a path bug that had been latent for months. Done in a Claude Code session; I ran the reproduction and the analysis below is mine.**
