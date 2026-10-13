@@ -32,7 +32,8 @@ dfx_runtime.txt
 # wholesale, so `!vivado_regfile/*.rpt` only works with `/*` above it.
 vivado_regfile/*
 !vivado_regfile/*.rpt
-vivado_cpu/
+vivado_cpu/*
+!vivado_cpu/*.rpt
 vivado_bringup/
 *.bit
 
