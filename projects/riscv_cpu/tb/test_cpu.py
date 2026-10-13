@@ -182,3 +182,22 @@ async def test_i_type_program(dut):
     trace = await run_cycles(dut, 5)
     expected = [(0, 1, 5), (4, 2, 8), (8, 3, 4)]
     assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
+
+@cocotb.test()
+async def test_no_writes_during_reset(dut):
+    """Instruction 0 must not execute while reset is held.
+
+    During reset the PC sits at 0, so instruction 0 is decoded on every edge.
+    If register writes aren't blocked, addi x1, x1, 1 counts up once per reset
+    cycle and the first real commit reports 6 instead of 1.
+    """
+    await start_and_reset(dut)
+    await load_program(dut, [
+        make_i_type(imm=1, rs1=1, funct3=0b000, rd=1, opcode=0b0010011),  # addi x1, x1, 1
+    ])
+    await seed_register(dut, 1, 0)
+    for _ in range(5):                     # hold reset for 5 more edges
+        await RisingEdge(dut.clk)
+    trace = await run_cycles(dut, 1)
+    expected = [(0, 1, 1)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
