@@ -17,12 +17,18 @@ executes those instructions end to end from fetch through writeback, and that
 is the whole claim.
 
 Not done yet: loads/stores, branches and jumps, LUI/AUIPC, pipelining, Spike
-co-simulation, formal verification, and FPGA deployment of the core. The only hardware bring-up so far
-is a blink bitstream and an out-of-context synthesis run of the register file.
+co-simulation, formal verification, and FPGA deployment of the core. The core
+has been synthesized and routed out of context (numbers below) but not run on
+the board. The only bitstream so far is a blink test.
 
 ## Verification approach
 
 - **Self-checking testbenches** in cocotb (Python), no eyeballing waveforms.
+- **Checked at the ports** — CPU programs are loaded through the instruction
+  memory's write port, and every check compares the full sequence of register
+  writes reported on the core's write-back port, rather than reading internal
+  registers. The one exception is clearing the register file between tests,
+  since it has no reset and all tests share a simulation.
 - **Reference modelling** — the ALU is checked against a Python model written
   from the RISC-V ISA specification rather than from the RTL, so the test cannot
   simply agree with the design.
@@ -61,7 +67,7 @@ make
 ```
 
 `make` runs the full regression across every project and stops on the first
-failure. It is currently **32/32 passing** from a clean clone. Individual
+failure. It is currently **34/34 passing** from a clean clone. Individual
 projects:
 
 ```bash
@@ -70,16 +76,37 @@ make uart       # UART transmitter (8N1)
 make alu        # 32-bit RV32I ALU: reference model, constrained-random, coverage gate
 make cpu        # single-cycle R/I-type core: regfile, imem, decoder, pc, control, cpu
 make clean      # remove build artifacts
+make synth      # Vivado out-of-context build of the CPU + one-line area/timing summary
 ```
 
 Waveforms are dumped to each project's `tb/sim_build/` and open with GTKWave.
 
 ## Synthesis
 
-The register file was run through Vivado out-of-context for the Artix-7
-(`xc7a35tcpg236-1`): 109 LUTs, 0.52% of the device, with the tool inferring
-distributed RAM for the 32x32 array rather than discrete flip-flops. The
-utilization report is committed alongside the build scripts.
+Vivado 2025.2, out of context, Artix-7 (`xc7a35tcpg236-1`), 100 MHz target.
+
+| Block | LUTs | of which distributed RAM | FFs | Timing |
+|---|---|---|---|---|
+| Single-cycle core | 608 (2.9%) | 88 | 30 | met, WNS +0.505 ns |
+| Register file alone | 109 (0.5%) | 44 | 0 | no reg-to-reg paths |
+
+Both the 32x32 register file and the 64-word instruction memory come out as
+distributed RAM rather than flip-flops. The 30 flip-flops are the PC: its low
+two bits are always zero, so Vivado replaces them with constants. The
+critical path runs PC → instruction memory → register file read → ALU carry
+chain → register file write, about 9.25 ns across 10 logic levels, most of it
+routing.
+
+The timing is against an ideal clock. Out of context, Vivado doesn't know
+where the clock buffer will sit, so there is no insertion delay or skew in the
+number, and the margin would shrink in a full design.
+
+An earlier build reported 217 LUTs. That figure was wrong as a size for the
+core: the instruction memory was a fixed ROM, so Vivado knew only three
+instructions could ever run and removed the logic for everything else. Adding
+a write port to the instruction memory makes its contents unknown at
+synthesis time, which is what produces the number above. Reports are in
+`vivado_cpu/` and `vivado_regfile/`; `make synth-report` reprints the summary.
 
 ## Documentation
 

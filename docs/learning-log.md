@@ -11,6 +11,30 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-10-13 (later) — Reset bug, imem write port, real CPU numbers
+
+Worked through the open items from the entry below. Done in a Claude Code session; I reviewed the changes and the reasoning.
+
+### What I did
+- Reset bug, test first. Wrote `test_no_writes_during_reset`: `addi x1, x1, 1` at address 0, reset held for 5 extra edges, then one real cycle. Expected the first commit to be x1 = 1. It reported 6, one increment per reset edge plus the real one. Committed the failing test on its own, then the fix in a separate commit.
+- The fix is one line in `cpu.sv`: `reg_we = reg_write & rst_n`, which drives the regfile's `we` and `wb_en_o`. Put it in `cpu.sv` because control is pure decode and has no reset, and the regfile is a generic storage block with no reset input. Retiring instructions is a CPU-level policy, so the CPU owns it.
+- Added a write port to `imem.sv` (`we`, `waddr` as a 6-bit word index, `wdata`), brought out through `cpu.sv` as `imem_we/imem_waddr/imem_wdata`. New `test_imem_write_port` checks that a write lands at the right word, leaves neighbours alone, and doesn't land when `we` is low.
+- `load_program` now writes every word through that port while reset is held. That only works because of the reset fix. Loading 64 words is 64 clock edges with instruction 0 sitting at the PC the whole time.
+- Replaced `seed_register` with `addi` instructions at the start of each program, and dropped the x31 seed from the overrun test since the trace already proves nothing else got written. The only backdoor left is zeroing all 32 registers in `start_and_reset`, which fixes the state leaking between tests.
+- Mutations: reset gate removed, imem write disabled, imem write address off by one, operand mux forced to rs2. All four caught. 34/34 passing.
+- `make synth` runs `build_cpu.tcl` and then `scripts/synth_report.py`, which pulls LUTs, FFs, WNS and WHS out of the reports into one line and exits non-zero if timing fails. `scripts/vivado_wsl.sh` runs the Windows Vivado from WSL.
+
+### What I learned
+- Real size: 608 LUTs (88 of them distributed RAM), 30 FFs, WNS +0.505 ns at 100 MHz, out of context against an ideal clock. That's almost 3x the 217 from the fixed-ROM build, which is roughly how much logic Vivado had been deleting because it knew only add/sub/and could ever run.
+- The imem became distributed RAM like the regfile did (RAMD64E for 64 words), so both memories are LUTRAM and the only flip-flops are the PC.
+- The critical path is the whole single-cycle loop: PC → imem → regfile read → ALU carry chain → regfile write. 9.25 ns over 10 logic levels, 73% of it routing. Slack went from 2.07 ns to 0.505 ns because the old build didn't have a real decoder or ALU in the path. A pipeline would cut this path up, which is the whole point of pipelining.
+- Writing the test first mattered. Predicting 6, seeing 6, then seeing it go to 1 is better evidence than a test written after the fix, which might pass for some unrelated reason.
+- The order of fixes mattered too. Zeroing the regfile before fixing the reset bug wouldn't have hidden this particular one, but front-door loading would have been unsafe: without the gate, whatever is at address 0 runs during all 64 load cycles.
+
+### Stuck on / questions
+- 0.5 ns of slack is thin, and it's against an ideal clock. Adding branches will put a comparator and a PC mux in the same loop, and that could break 100 MHz. Worth watching when I add them.
+- `waddr` is a word index while the fetch side uses a byte address. It works, but it's an inconsistency someone could trip over.
+
 ## 2026-10-13 — CPU synthesized to nothing because the tests never looked at the ports
 
 Follow-up to the open item from the 2026-09-01 Vivado run. Done in a Claude Code session; I reviewed the changes and the reasoning below.
