@@ -22,7 +22,10 @@ add_files -norecurse [list \
 set_property top $top [current_fileset]
 update_compile_order -fileset sources_1
 
-synth_design -top $top -part $part
+# Out-of-context, same reason as build_regfile.tcl: the commit port makes the
+# CPU 71 top-level pins with no pin constraints. The core is characterized as a
+# block (area, timing), not wired to physical package pins.
+synth_design -top $top -part $part -mode out_of_context
 
 # Clock created AFTER synth_design so get_ports can resolve the clk port.
 create_clock -period 10.000 -name clk [get_ports clk]

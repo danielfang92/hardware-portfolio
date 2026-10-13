@@ -5,8 +5,15 @@
 import riscv_pkg::*;
 
 module cpu (
-    input logic clk,
-    input logic rst_n
+    input  logic        clk,
+    input  logic        rst_n,
+    // Write-back (commit) port: what the current instruction writes, and where
+    // it came from. Without outputs, synthesis sees nothing observable and
+    // removes the whole design, so these make the datapath real hardware.
+    output logic        wb_en_o,
+    output logic [4:0]  wb_rd_o,
+    output logic [31:0] wb_data_o,
+    output logic [31:0] pc_o
 );
 
 logic [31:0] pc, instruction;
@@ -69,6 +76,14 @@ alu u_alu (
     .result (alu_result),
     .zero (zero)
 );
+
+// Commit port. A write to x0 is discarded by the regfile, so report its data
+// as 0 (the riscv-formal RVFI rule): the port shows what actually landed,
+// not what the ALU happened to compute.
+assign wb_en_o   = reg_write;
+assign wb_rd_o   = rd;
+assign wb_data_o = (rd == 5'd0) ? 32'd0 : alu_result;
+assign pc_o      = pc;
 
 
 endmodule

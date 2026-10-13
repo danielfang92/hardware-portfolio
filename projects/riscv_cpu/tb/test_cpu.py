@@ -3,7 +3,7 @@
 # remember: test_r_type_program doesn't call load_program, relies on imem from RTL
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import RisingEdge, FallingEdge, Timer
 
 
 '''@cocotb.test()
@@ -42,16 +42,46 @@ async def seed_register(dut, addr, value):
     dut.u_regfile.registers[addr].value = value
     await Timer (1, unit="ns")
 
+async def monitor_writeback(dut, trace):
+    """Record every register write the CPU reports on its commit port.
+
+    Samples on the FALLING edge: in a single-cycle core the current
+    instruction's write-back signals are combinational, so mid-cycle they have
+    settled and describe the write that the next rising edge will commit.
+    Only the ports are read here, never dut.u_regfile, so this checks what the
+    outside world (and synthesis) can actually see.
+    """
+    while True:
+        await FallingEdge(dut.clk)
+        if dut.rst_n.value == 1 and dut.wb_en_o.value == 1:
+            trace.append((int(dut.pc_o.value),
+                          int(dut.wb_rd_o.value),
+                          int(dut.wb_data_o.value)))
+
 async def run_cycles(dut, n):
-    """Release reset and run n clock cycles."""
+    """Release reset, run n clock cycles, return the commit trace.
+
+    Each trace entry is (pc, rd, data) for one register write, in order.
+    """
+    trace = []
+    cocotb.start_soon(monitor_writeback(dut, trace))
     dut.rst_n.value = 1
     for _ in range(n):
         await RisingEdge(dut.clk)
-    await Timer(1, unit="ns")    
-    
+    await Timer(1, unit="ns")
+    return trace
+
+IMEM_WORDS = 64
+
 async def load_program(dut, instructions):
-    """Overwrite imem with a program, one word per slot."""
-    for i, instr in enumerate(instructions):
+    """Overwrite imem with a program, zero-filling every slot after it.
+
+    Zero-fill matters: imem.sv's initial block preloads add/sub/and in slots
+    0-2. A shorter program would otherwise fall through into those leftovers
+    and run them, and a full-trace check would (correctly) see the extra write.
+    """
+    words = instructions + [0] * (IMEM_WORDS - len(instructions))
+    for i, instr in enumerate(words):
         dut.u_imem.mem[i].value = instr
     await Timer(1, unit="ns")
     
@@ -61,10 +91,9 @@ async def test_r_type_program(dut):
     await start_and_reset(dut)
     await seed_register (dut, 1, 10)
     await seed_register (dut, 2, 3)
-    await run_cycles (dut, 4)
-    assert dut.u_regfile.registers[3].value == 13, f"add result wrong: {(dut.u_regfile.registers[3].value)}"
-    assert dut.u_regfile.registers[4].value == 7, f"sub result wrong: {(dut.u_regfile.registers[4].value)}"
-    assert dut.u_regfile.registers[5].value == 2, f"and result wrong: {(dut.u_regfile.registers[5].value)}"
+    trace = await run_cycles(dut, 4)
+    expected = [(0, 3, 13), (4, 4, 7), (8, 5, 2)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
     
 @cocotb.test()
 async def test_dependent_instructions(dut):   
@@ -80,9 +109,9 @@ async def test_dependent_instructions(dut):
     ])
     await seed_register (dut, 1, 5)
     await seed_register (dut, 2, 2)
-    await run_cycles (dut, 4)
-    assert dut.u_regfile.registers[3].value == 3, f"sub result wrong: {(dut.u_regfile.registers[3].value)}"
-    assert dut.u_regfile.registers[4].value == 5, f"add result wrong: {(dut.u_regfile.registers[4].value)}"
+    trace = await run_cycles(dut, 4)
+    expected = [(0, 3, 3), (4, 4, 5)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
 
 @cocotb.test()
 async def test_x0_stays_zero(dut):
@@ -94,6 +123,9 @@ async def test_x0_stays_zero(dut):
     Reading through the program rather than inspecting registers[0]
     directly, because with no reset that slot holds X whether or not
     the write was blocked.
+
+    The x0 write still appears on the commit port (it is a real instruction)
+    but must report data 0, not the 7 the ALU computed.
     """
     await start_and_reset(dut)
     await load_program(dut, [
@@ -104,9 +136,9 @@ async def test_x0_stays_zero(dut):
     ])
     await seed_register(dut, 1, 5)
     await seed_register(dut, 2, 2)
-    await run_cycles(dut, 4)
-    assert dut.u_regfile.registers[3].value == 0, \
-        f"x0 did not read as zero: x3 = {dut.u_regfile.registers[3].value}"
+    trace = await run_cycles(dut, 4)
+    expected = [(0, 0, 0), (4, 3, 0)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
     
 
 @cocotb.test()
@@ -114,8 +146,10 @@ async def test_overrun_is_harmless(dut):
     """Running past the end of the program must not corrupt registers.
 
     imem is zero-filled, so fetching past the program returns 32'h00000000.
-    Opcode 0000000 is not R-type, so control should hold reg_write low and
-    nothing should be written.
+    Opcode 0000000 is neither R-type nor OP-IMM, so control should hold
+    reg_write low and nothing should be written. Checking the full trace is
+    stronger than spot-checking x31: it proves NO register was written after
+    the add, not just that one register survived.
     """
     await start_and_reset(dut)
     await load_program(dut, [
@@ -127,11 +161,9 @@ async def test_overrun_is_harmless(dut):
     await seed_register(dut, 1, 5)
     await seed_register(dut, 2, 2)
     await seed_register(dut, 31, 0xABCD)     # nothing should ever overwrite x31
-    await run_cycles(dut, 20)
-    assert dut.u_regfile.registers[3].value == 7, \
-        f"add result wrong: {dut.u_regfile.registers[3].value}"
-    assert dut.u_regfile.registers[31].value == 0xABCD, \
-        f"x31 corrupted by overrun: {dut.u_regfile.registers[31].value}"
+    trace = await run_cycles(dut, 20)
+    expected = [(0, 3, 7)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
 
 @cocotb.test()
 async def test_i_type_program(dut):
@@ -147,7 +179,6 @@ async def test_i_type_program(dut):
         make_i_type(imm=3,  rs1=1, funct3=0b000, rd=2, opcode=0b0010011),
         make_i_type(imm=-1, rs1=1, funct3=0b000, rd=3, opcode=0b0010011),
     ])
-    await run_cycles(dut, 5)
-    assert dut.u_regfile.registers[1].value == 5, f"x1 wrong: {dut.u_regfile.registers[1].value}"
-    assert dut.u_regfile.registers[2].value == 8, f"x2 wrong: {dut.u_regfile.registers[2].value}"
-    assert dut.u_regfile.registers[3].value == 4, f"x3 wrong: {dut.u_regfile.registers[3].value}"
+    trace = await run_cycles(dut, 5)
+    expected = [(0, 1, 5), (4, 2, 8), (8, 3, 4)]
+    assert trace == expected, f"commit trace wrong: expected {expected}, got {trace}"
