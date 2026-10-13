@@ -11,6 +11,32 @@ Each entry contains:
 - **What I learned** (key concepts, insights)
 - **Stuck on / questions** (things to revisit)
 
+## 2026-10-13 (evening) — GitHub Actions CI for the simulation regression
+
+Done in a Claude Code session; I reviewed the workflow and wrote the spec for it.
+
+### What I did
+- Added `.github/workflows/regression.yml`. On every push (any branch), every pull request, and on demand, it checks out the repo, installs Python 3.12, Icarus Verilog and the pinned `requirements.txt`, prints the tool versions, and runs the root `make`. That's the same 34-test regression I run locally, and it exits non-zero on the first failing project.
+- Green run on main: https://github.com/danielfang92/hardware-portfolio/actions/runs/38474023555 (about 36 s for the whole job).
+- Proved it can fail. Pushed a throwaway branch `ci-must-fail` with `assert False` added to `test_reset_clears_count`. The run went red: https://github.com/danielfang92/hardware-portfolio/actions/runs/38474190848, with `make` exiting with code 2. Running the same branch locally showed `test_counter.test_reset_clears_count FAIL`, `TESTS=4 PASS=3 FAIL=1` and the same exit code 2. Deleted the branch locally and on GitHub without merging it.
+- Added the badge and a CI paragraph to the README.
+
+### What I learned
+- CI checks simulation only. Vivado is licensed and installed on Windows, so synthesis can't run on a GitHub runner. `make synth` stays local, and the committed reports in `vivado_cpu/` are the evidence for the area and timing numbers. CI says nothing about whether the design still meets 100 MHz.
+- Why things are pinned:
+  - `ubuntu-24.04` rather than `ubuntu-latest`, so the image (and the iverilog it installs, 12.0 on 24.04) can't change under me without a commit.
+  - Python 3.12 explicitly, because cocotb 2.0.1 won't build on 3.14 and an image default could drift there.
+  - cocotb and pytest were already pinned in `requirements.txt`.
+  - The point is that a failure means my code changed, not the environment.
+- GitHub runs each `run:` step with `bash -eo pipefail`. My first draft printed the version with `iverilog -V | head -n 1`. `head` exits after one line, iverilog gets SIGPIPE (exit 141), and pipefail turns that into a failed step. Caught it by running the step under the same shell locally before pushing. Now it just prints the whole `iverilog -V` banner.
+- The red run is the evidence. A CI that has only ever been green could be running nothing, or swallowing the exit code.
+- The run summary only says "Process completed with exit code 2". The test name is in the step log, which needs a GitHub login to read.
+
+### Stuck on / questions
+- Both runs warned that `actions/checkout@v4` and `actions/setup-python@v5` target Node.js 20, which GitHub is deprecating (they're being forced onto Node 24). Still works. Bumping to the newer major versions is a one-line change each, worth doing once I've read their changelogs.
+- CI uses Python 3.12 while the README tells people to use 3.13 locally. Both are inside the supported 3.9–3.13 range, but it's two versions to keep straight.
+- No seed control yet. `test_alu.py` never seeds `random` itself, so cocotb picks a new seed every run and prints it near the top of the log. A rare CI failure only reproduces locally if I copy that seed out of the log and rerun with `RANDOM_SEED=<seed>`.
+
 ## 2026-10-13 (later) — Reset bug, imem write port, real CPU numbers
 
 Worked through the open items from the entry below. Done in a Claude Code session; I reviewed the changes and the reasoning.
