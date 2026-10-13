@@ -22,6 +22,10 @@ def make_r_type(funct7, rs2, rs1, funct3, rd, opcode):
 #Make an R-type instruction
     return (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | (opcode << 0)
 
+def make_i_type(imm, rs1, funct3, rd, opcode):
+#Make an I-type instruction. imm is a 12-bit signed value; mask to 12 bits.
+    return ((imm & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | (opcode << 0)
+
 async def start_and_reset(dut):
 #Start the clock and assert reset
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
@@ -127,4 +131,23 @@ async def test_overrun_is_harmless(dut):
     assert dut.u_regfile.registers[3].value == 7, \
         f"add result wrong: {dut.u_regfile.registers[3].value}"
     assert dut.u_regfile.registers[31].value == 0xABCD, \
-        f"x31 corrupted by overrun: {dut.u_regfile.registers[31].value}"                       
+        f"x31 corrupted by overrun: {dut.u_regfile.registers[31].value}"
+
+@cocotb.test()
+async def test_i_type_program(dut):
+    """I-type immediates run end to end with NO register seeding.
+
+    addi x1, x0, 5     x1 = 0 + 5    = 5
+    addi x2, x1, 3     x2 = 5 + 3    = 8   (reads x1 written the cycle before)
+    addi x3, x1, -1    x3 = 5 + (-1) = 4   (negative imm, sign-extended)
+    """
+    await start_and_reset(dut)
+    await load_program(dut, [
+        make_i_type(imm=5,  rs1=0, funct3=0b000, rd=1, opcode=0b0010011),
+        make_i_type(imm=3,  rs1=1, funct3=0b000, rd=2, opcode=0b0010011),
+        make_i_type(imm=-1, rs1=1, funct3=0b000, rd=3, opcode=0b0010011),
+    ])
+    await run_cycles(dut, 5)
+    assert dut.u_regfile.registers[1].value == 5, f"x1 wrong: {dut.u_regfile.registers[1].value}"
+    assert dut.u_regfile.registers[2].value == 8, f"x2 wrong: {dut.u_regfile.registers[2].value}"
+    assert dut.u_regfile.registers[3].value == 4, f"x3 wrong: {dut.u_regfile.registers[3].value}"

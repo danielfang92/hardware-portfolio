@@ -33,6 +33,32 @@ async def check(dut, funct3, funct7, expected_op):
         f"funct3={funct3:03b}: reg_write should be 1 for R-type, got "
         f"{int(dut.reg_write.value)}"
     )
+    assert dut.alu_src.value == 0, (
+        f"funct3={funct3:03b}: alu_src should be 0 for R-type (operand_b=rs2), got "
+        f"{int(dut.alu_src.value)}"
+    )
+
+
+async def check_i(dut, funct3, funct7, expected_op):
+    """Drive one I-type (OP-IMM) instruction's control fields and check the decode."""
+    dut.opcode.value = I_TYPE
+    dut.funct3.value = funct3
+    dut.funct7.value = funct7
+    await Timer(1, unit="ns")
+
+    got = int(dut.alu_op.value)
+    assert got == expected_op, (
+        f"funct3={funct3:03b} funct7={funct7:07b}: "
+        f"expected {OP_NAMES[expected_op]}, got {OP_NAMES.get(got, got)}"
+    )
+    assert dut.reg_write.value == 1, (
+        f"funct3={funct3:03b}: reg_write should be 1 for I-type, got "
+        f"{int(dut.reg_write.value)}"
+    )
+    assert dut.alu_src.value == 1, (
+        f"funct3={funct3:03b}: alu_src should be 1 for I-type (operand_b=imm), got "
+        f"{int(dut.alu_src.value)}"
+    )
 
 
 @cocotb.test()
@@ -53,13 +79,35 @@ async def test_all_r_type_ops(dut):
 
 
 @cocotb.test()
-async def test_non_r_type_no_write(dut):
-    """An unrecognised opcode must not enable the register write."""
-    dut.opcode.value = I_TYPE
+async def test_all_i_type_ops(dut):
+    """Every OP-IMM funct3 maps to the right ALU op, with alu_src high."""
+    await check_i(dut, 0b000, 0b0000000, ALU_ADD)   # ADDI
+    await check_i(dut, 0b000, 0b0100000, ALU_ADD)   # funct7 set, still ADDI (no SUBI)
+    await check_i(dut, 0b010, 0b0000000, ALU_SLT)   # SLTI
+    await check_i(dut, 0b011, 0b0000000, ALU_SLTU)  # SLTIU
+    await check_i(dut, 0b100, 0b0000000, ALU_XOR)   # XORI
+    await check_i(dut, 0b110, 0b0000000, ALU_OR)    # ORI
+    await check_i(dut, 0b111, 0b0000000, ALU_AND)   # ANDI
+    await check_i(dut, 0b001, 0b0000000, ALU_SLL)   # SLLI
+    await check_i(dut, 0b101, 0b0000000, ALU_SRL)   # SRLI
+    await check_i(dut, 0b101, 0b0100000, ALU_SRA)   # SRAI (funct7 distinguishes)
+
+    dut._log.info("All I-type (OP-IMM) operations decoded correctly.")
+
+
+@cocotb.test()
+async def test_unimplemented_opcode_no_write(dut):
+    """An opcode the control unit does not decode must hold reg_write low.
+
+    0b0000000 is the zero-fill word fetched past the end of a program; it is
+    not a legal opcode, so nothing should be written. (I-type now legitimately
+    writes, so it is no longer a valid 'does-not-write' example.)
+    """
+    dut.opcode.value = 0b0000000
     dut.funct3.value = 0b000
     dut.funct7.value = 0b0000000
     await Timer(1, unit="ns")
     assert dut.reg_write.value == 0, (
-        f"reg_write must be 0 for non-R-type opcode, got "
+        f"reg_write must be 0 for an unimplemented opcode, got "
         f"{int(dut.reg_write.value)}"
     )

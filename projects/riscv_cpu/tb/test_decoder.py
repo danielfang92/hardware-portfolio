@@ -10,6 +10,10 @@ def make_r_type(funct7, rs2, rs1, funct3, rd, opcode):
     return (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode
 
 
+def make_i_type(imm, rs1, funct3, rd, opcode=0b0010011):
+    
+    return (((imm & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode)
+
 @cocotb.test()
 async def test_add_fields(dut):
 #Decode 'add x3, x1, x2' and check every field   
@@ -45,4 +49,31 @@ async def test_all_ones(dut):
     assert dut.rs1.value == 0b11111,            f"rs1 wrong: {int(dut.rs1.value)}"
     assert dut.rs2.value == 0b11111,            f"rs2 wrong: {int(dut.rs2.value)}"
     assert dut.funct7.value == 0b1111111, f"funct7 wrong: {hex(int(dut.funct7.value))}"
+
+@cocotb.test()
+async def test_imm_i_neg_one(dut):
     
+    dut.instruction.value = make_i_type(imm=-1, rs1=0, funct3=0b000, rd=1)
+    await Timer(1, "ns")
+    assert dut.imm_i.value == 0xFFFFFFFF, f"imm_i wrong: {hex(int(dut.imm_i.value))}"
+
+@cocotb.test()
+async def test_imm_i_pos_five(dut):
+    dut.instruction.value = make_i_type(imm=5, rs1=0, funct3=0b000, rd=1)
+    await Timer(1, "ns")
+    assert dut.imm_i.value == 0x00000005, f"imm_i wrong: {hex(int(dut.imm_i.value))}"
+    
+@cocotb.test()
+async def test_imm_i_max_positive(dut):
+    # addi x5, x31, 2047 : largest positive immediate
+    dut.instruction.value = make_i_type(imm=2047, rs1=31, funct3=0b000, rd=5)
+    await Timer(1, "ns")
+    assert dut.imm_i.value == 0x000007FF, f"imm_i wrong: {hex(int(dut.imm_i.value))}"
+
+
+@cocotb.test()
+async def test_imm_i_min_negative(dut):
+    # addi x5, x1, -2048 : smallest negative immediate.
+    dut.instruction.value = make_i_type(imm=-2048, rs1=1, funct3=0b000, rd=5)
+    await Timer(1, "ns")
+    assert dut.imm_i.value == 0xFFFFF800, f"imm_i wrong: {hex(int(dut.imm_i.value))}"
