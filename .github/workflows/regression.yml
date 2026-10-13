@@ -1,0 +1,55 @@
+name: regression
+
+# Every push on any branch, so a broken test shows up before it reaches main;
+# PRs so a contribution is checked before merge; manual so a run can be
+# repeated without a dummy commit.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# The job only reads the repo. Least privilege: a compromised step can't push.
+permissions:
+  contents: read
+
+jobs:
+  sim:
+    # Pinned image, so an Ubuntu upgrade can't silently change the iverilog
+    # version under a test that used to pass.
+    runs-on: ubuntu-24.04
+    # The full regression takes about a minute; a hung simulation shouldn't
+    # burn the default 6 hours.
+    timeout-minutes: 15
+
+    steps:
+      # The runner starts empty; nothing to test until the repo is on it.
+      - uses: actions/checkout@v4
+
+      # cocotb 2.0.1 won't build on Python 3.14, so the version can't be left
+      # to whatever the image ships. Caching pip skips re-downloading cocotb.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # The simulator isn't on the image; Ubuntu 24.04's package is 12.0,
+      # the version the README documents.
+      - name: Install Icarus Verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+
+      # Same pinned versions a reviewer would install from the README.
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # A green run is evidence about the environment as much as the design,
+      # so every log records exactly which tools produced it.
+      - name: Record tool versions
+        run: |
+          iverilog -V
+          python --version
+          python -c "import cocotb; print('cocotb', cocotb.__version__)"
+
+      # The actual check: the same command a person runs locally. Exits
+      # non-zero on the first failing project, which fails the job.
+      - name: Run regression
+        run: make
